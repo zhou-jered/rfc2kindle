@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 '''
-Usage: rfc2mobi [options] rfcXXXX
+Usage: rfc2mobi [options] <rfcXXXX|url>
 
-A program to convert RFC to mobi formatted eBooks.
+A program to convert RFC or I-D to mobi formatted eBooks.
 Options:
   -k ..., --kindlegen=...  The kindlegen program to use. By default, it's "./kindlegen"
-  -h, --help 
+  -h, --help
+
+If you want to convert a RFC, just give the RFC name as command line option.
+For I-D, specific the link where it can download. 
 '''
 
 '''
@@ -26,26 +29,26 @@ def getHttpData(url):
     response.close()
     return httpdata
     
-def rfc2mobi(kgen, rfc):
-    req = urllib2.Request('http://www.ietf.org/rfc/%s.txt' % (rfc))
+def rfc2mobi(kgen, doc, link):
+    req = urllib2.Request(link)
     req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
     response = urllib2.urlopen(req)
-    if not os.path.exists(rfc):
-        os.makedirs(rfc)
+    if not os.path.exists(doc):
+        os.makedirs(doc)
 
-    output = open(os.path.join(rfc, rfc+'.html'), 'w')
+    output = open(os.path.join(doc, doc+'.html'), 'w')
     
-    html = Html('%s' %(rfc), response, output)
+    html = Html('%s' %(doc), response, output)
     html.createHTML()
     response.close()
     output.close()
     if html.hasContent:
-        os.system("%s %s -o %s.mobi" % (kgen, os.path.join(rfc, rfc+'.html'), rfc))
+        os.system("%s %s -o %s.mobi" % (kgen, os.path.join(doc, doc+'.html'), doc))
     else:
-        print "Unrecognize %s." %(rfc)
-        shutil.rmtree(rfc)
+        print "Unrecognize %s." %(doc)
+        shutil.rmtree(doc)
     
-    print "Successfully converted %s into %s directory." % (rfc, rfc)
+    print "Successfully converted %s into %s directory." % (doc, doc)
 
 def usage():
      print __doc__
@@ -75,5 +78,12 @@ if __name__ == '__main__':
       usage()
       sys.exit()
 
-    rfc = sys.argv[-1].lower()
-    rfc2mobi(kgen, rfc)
+    if sys.argv[-1].lower().startswith('rfc'):
+        doc = sys.argv[-1].lower()
+        link = 'http://www.ietf.org/rfc/%s.txt' % (doc)
+    else:
+        link = sys.argv[-1]
+        doc = sys.argv[-1].split('/')[-1]
+
+    print "link = %s, doc = %s" % (link, doc)
+    rfc2mobi(kgen, doc, link)
